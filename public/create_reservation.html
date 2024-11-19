@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Reserva</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            background: #fff;
+        }
+        input, select, button, textarea {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .back-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Crear Reserva</h1>
+        <form id="reservationForm">
+            <input type="date" id="day" required>
+            <input type="time" id="from" required>
+            <input type="time" id="to" required>
+            <select id="room" required>
+                <option value="">Seleccionar Sala</option>
+                <!-- Opciones se generarán dinámicamente -->
+            </select>
+            <input type="number" id="assistants" placeholder="Cantidad de asistentes" required>
+            <textarea id="observations" placeholder="Observaciones"></textarea>
+            <button type="submit">Reservar</button>
+        </form>
+        <button class="back-btn" id="backBtn">Volver</button>
+    </div>
+    <script>
+        async function loadRooms() {
+            try {
+                const response = await fetch('/rooms');
+                if (!response.ok) {
+                    throw new Error('Error al cargar las salas.');
+                }
+                const rooms = await response.json();
+
+                const select = document.getElementById('room');
+                select.innerHTML = '<option value="">Seleccionar Sala</option>'; // Reset options
+                rooms.forEach(room => {
+                    const option = document.createElement('option');
+                    option.value = room.room_name;
+                    option.textContent = `${room.room_name} (Capacidad: ${room.room_capacity})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar las salas:', error);
+                alert('Error al cargar las salas. Inténtalo de nuevo más tarde.');
+            }
+        }
+
+        document.getElementById('reservationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Debes iniciar sesión.');
+                window.location.href = '/';
+                return;
+            }
+
+            const body = {
+                day: document.getElementById('day').value,
+                from: document.getElementById('from').value,
+                to: document.getElementById('to').value,
+                room: document.getElementById('room').value,
+                assistants: document.getElementById('assistants').value,
+                observations: document.getElementById('observations').value,
+            };
+
+            try {
+                const response = await fetch('/create-reservation', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body),
+                });
+
+                if (response.ok) {
+                    alert('Reserva creada con éxito.');
+                    window.location.href = 'user.html';
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al crear la reserva.');
+                }
+            } catch (error) {
+                console.error('Error al crear la reserva:', error);
+                alert('Error al crear la reserva. Inténtalo de nuevo más tarde.');
+            }
+        });
+
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.location.href = 'user.html';
+        });
+
+        document.addEventListener('DOMContentLoaded', loadRooms);
+    </script>
+</body>
+</html>

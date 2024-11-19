@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrar Usuarios</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .controls {
+            margin: 20px;
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 90%;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            text-align: center;
+            padding: 10px;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        td {
+            background-color: #f9f9f9;
+        }
+        .search-bar {
+            width: 50%;
+            padding: 10px;
+            margin: 10px auto;
+            display: none; /* Oculto por defecto */
+        }
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .create-user-form {
+            display: none;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            padding: 20px;
+            background-color: #fff;
+            width: 50%;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .create-user-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Administrar Usuarios</h1>
+    <div class="controls">
+        <label for="roleSelector">Filtrar por rol:</label>
+        <select id="roleSelector">
+            <option value="moderator">Moderadores</option>
+            <option value="user">Usuarios</option>
+            <option value="admin">Administradores</option>
+        </select>
+        <input type="text" id="searchBar" class="search-bar" placeholder="Buscar por nombre o correo">
+        <button id="logoutBtn" class="logout-btn">Salir</button>
+        <button id="showCreateUserFormBtn" class="create-user-btn">Crear Nuevo Usuario</button>
+    </div>
+    <div class="create-user-form" id="createUserForm">
+        <h2>Crear Nuevo Usuario</h2>
+        <form id="newUserForm">
+            <input type="text" id="newUserName" placeholder="Nombre Completo" required>
+            <input type="email" id="newUserEmail" placeholder="Correo Electrónico" required>
+            <select id="newUserRole" required>
+                <option value="moderator">Moderador</option>
+                <option value="user">Usuario</option>
+            </select>
+            <input type="password" id="newUserPassword" placeholder="Contraseña" required>
+            <button type="submit" class="create-user-btn">Guardar</button>
+        </form>
+    </div>
+    <div id="userContent">
+        <table id="userTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Rol</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Filas se generarán dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        async function loadUsers(role) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Debes iniciar sesión.');
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/users?role=${role}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+
+                const users = await response.json();
+
+                if (response.ok) {
+                    renderTable(users, role);
+                } else {
+                    alert(users.error || 'Error al cargar los usuarios.');
+                }
+            } catch (error) {
+                console.error('Error al cargar los usuarios:', error);
+                alert('Error al cargar los usuarios.');
+            }
+        }
+
+        function renderTable(users, role) {
+            const tableBody = document.querySelector('#userTable tbody');
+            tableBody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.user_id}</td>
+                    <td>${user.user_full_name}</td>
+                    <td>${user.user_email}</td>
+                    <td>${user.role}</td>
+                `;
+
+                const actionsCell = document.createElement('td');
+                if (role !== 'admin') {
+                    const editBtn = document.createElement('button');
+                    editBtn.textContent = 'Editar';
+                    editBtn.addEventListener('click', () => {
+                        editUser(user);
+                    });
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Eliminar';
+                    deleteBtn.addEventListener('click', () => {
+                        deleteUser(user.user_id);
+                    });
+
+                    actionsCell.appendChild(editBtn);
+                    actionsCell.appendChild(deleteBtn);
+                } else {
+                    actionsCell.textContent = 'No permitido';
+                }
+                row.appendChild(actionsCell);
+                tableBody.appendChild(row);
+            });
+        }
+
+        async function createUser(data) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Debes iniciar sesión.');
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/users', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (response.ok) {
+                    alert('Usuario creado exitosamente.');
+                    const role = document.getElementById('roleSelector').value;
+                    loadUsers(role);
+                    document.getElementById('createUserForm').style.display = 'none';
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al crear el usuario.');
+                }
+            } catch (error) {
+                console.error('Error al crear el usuario:', error);
+                alert('Error al crear el usuario.');
+            }
+        }
+
+        document.getElementById('newUserForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newUserName').value;
+            const email = document.getElementById('newUserEmail').value;
+            const role = document.getElementById('newUserRole').value;
+            const password = document.getElementById('newUserPassword').value;
+
+            const userType = role === 'moderator' ? 'employee' : 'user';
+
+            createUser({ name, email, role, userType, password });
+        });
+
+        document.getElementById('roleSelector').addEventListener('change', (e) => {
+            const role = e.target.value;
+            const searchBar = document.getElementById('searchBar');
+
+            if (role === 'user') {
+                searchBar.style.display = 'block'; // Mostrar barra de búsqueda
+            } else {
+                searchBar.style.display = 'none'; // Ocultar barra de búsqueda
+                searchBar.value = ''; // Limpiar búsqueda
+            }
+
+            loadUsers(role);
+        });
+
+        document.getElementById('showCreateUserFormBtn').addEventListener('click', () => {
+            const form = document.getElementById('createUserForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const role = document.getElementById('roleSelector').value;
+            loadUsers(role);
+        });
+    </script>
+</body>
+</html>

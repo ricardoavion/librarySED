@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Reservas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .controls {
+            margin: 20px;
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 90%;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            text-align: center;
+            padding: 10px;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        td {
+            background-color: #f9f9f9;
+        }
+        .reserved {
+            background-color: #ffc107;
+            font-weight: bold;
+        }
+        .logout-btn, .create-reservation-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mis Reservas</h1>
+    <div class="controls">
+        <label for="datePicker">Seleccionar Fecha:</label>
+        <input type="date" id="datePicker">
+        <button id="logoutBtn" class="logout-btn">Salir</button>
+        <button id="createReservationBtn" class="create-reservation-btn">Crear Nueva Reserva</button>
+    </div>
+    <div id="reservationContent">
+        <table id="reservationTable">
+            <thead>
+                <tr>
+                    <th>Hora</th>
+                    <!-- Columnas de salas se generarán dinámicamente -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Filas de reservas se generarán dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        async function loadReservations(date) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Debes iniciar sesión.');
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/user/reservations?date=${date}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    renderTable(data.rooms, data.reservations);
+                } else {
+                    alert(data.error || 'Error al cargar las reservas.');
+                }
+            } catch (error) {
+                console.error('Error al cargar las reservas:', error);
+                alert('Error al cargar las reservas.');
+            }
+        }
+
+        function renderTable(rooms, reservations) {
+            const tableHead = document.querySelector('#reservationTable thead tr');
+            const tableBody = document.querySelector('#reservationTable tbody');
+
+            // Limpiar tabla
+            tableHead.innerHTML = '<th>Hora</th>';
+            tableBody.innerHTML = '';
+
+            // Agregar columnas de salas
+            rooms.forEach(room => {
+                const th = document.createElement('th');
+                th.textContent = room.room_name;
+                tableHead.appendChild(th);
+            });
+
+            // Generar filas de horarios
+            const intervals = generateTimeIntervals();
+            intervals.forEach(interval => {
+                const row = document.createElement('tr');
+                const hourCell = document.createElement('td');
+                hourCell.textContent = interval;
+                row.appendChild(hourCell);
+
+                rooms.forEach(room => {
+                    const cell = document.createElement('td');
+                    const reservation = reservations.find(
+                        r => r.room_name === room.room_name && isTimeInInterval(r, interval)
+                    );
+
+                    if (reservation) {
+                        cell.textContent = `${reservation.user_name} (ID: ${reservation.reservation_id})`;
+                        cell.classList.add('reserved');
+                    }
+                    row.appendChild(cell);
+                });
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        function generateTimeIntervals() {
+            const intervals = [];
+            const startHour = 7; // 7 AM
+            const endHour = 19; // 7 PM
+            for (let hour = startHour; hour < endHour; hour++) {
+                intervals.push(`${hour}:00 - ${hour}:30`);
+                intervals.push(`${hour}:30 - ${hour + 1}:00`);
+            }
+            return intervals;
+        }
+
+        function isTimeInInterval(reservation, interval) {
+            const [start, end] = interval.split(' - ').map(t => t.trim());
+            return reservation.time_start <= start && reservation.time_end > start;
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        });
+
+        document.getElementById('createReservationBtn').addEventListener('click', () => {
+            window.location.href = 'create_reservation.html';
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const date = new Date().toISOString().split('T')[0]; // Fecha de hoy
+            document.getElementById('datePicker').value = date;
+            loadReservations(date);
+
+            document.getElementById('datePicker').addEventListener('change', (e) => {
+                loadReservations(e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>

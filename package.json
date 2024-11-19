@@ -1,0 +1,17 @@
+{
+  "name": "library-reservation-app",
+  "version": "1.0.0",
+  "description": "Aplicación web para reserva de salas en biblioteca.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.11.4"
+  },
+  "author": "",
+  "license": "ISC"
+}

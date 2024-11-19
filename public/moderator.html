@@ -1,0 +1,36 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+    <title>Vista Moderador</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Reservas del día</h1>
+        <table id="reservationsTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Email</th>
+                    <th>Día</th>
+                    <th>Desde</th>
+                    <th>Hasta</th>
+                    <th>Asistentes</th>
+                    <th>Salón</th>
+                    <th>Observaciones</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Reservas se cargarán aquí -->
+            </tbody>
+        </table>
+        <button onclick="window.location.href='create_reservation.html'">Nueva Reserva</button>
+        <button onclick="window.location.href='edit_reservation.html'">Editar Reserva</button>
+    </div>
+    <script src="js/main.js"></script>
+</body>
+</html>
